@@ -4,45 +4,48 @@
 Pokud ne, stručně popište proč a co vektorizaci brání.
 Pokud ano, jaká je efektivita vektorizace? (0.5b)
 =============================================================================
-
+NE - problém při volání funkce mandelbrot(), kompilátor neví co přesně funkce dělá. 
+Navíc ve funkci dochází k podmíněnému ukončení cyklu, což způsobuje rozdílné počty iterací pro vnější smyčku.
 
 2. Kolika GFLOPS a GINTOPS dosahuje smyčka ve funkci mandelbrot u ref verze kódu při 
 překladu s -O0 (žádné optimalizace) a -O3 (maximální optimalizace)? 
 Byly použity FMA instrukce? Jak jste k tomu přišli? Jaká instrukční sada (IS) byla použita? (1b)
 =============================================================================
 - O0:
--- XX.X GFLOPS
--- XX.X GINTOPS
--- IS:
--- FMA: ano/ne
+-- 1,17 GFLOPS
+-- 0,29 GINTOPS
+-- IS: AVX
+-- FMA: ne
 
 - O3:
--- XX.X GFLOPS
--- XX.X GINTOPS
--- IS:
--- FMA: ano/ne
+-- 3,19 GFLOPS
+-- 0,38 GINTOPS
+-- IS: AVX
+-- FMA: ano, konkrétně vfmad213ss
 
 
-3. Přeložte ref vezi kódu s přepínačem -O0 (žádné optimalizace) a -O3 (maximální optimalizace). (2b)
+3. Přeložte ref verzi kódu s přepínačem -O0 (žádné optimalizace) a -O3 (maximální optimalizace). (2b)
 - Co se stalo s paměťovými přístupy u smyček? Popište číslem s jednotkou/procentuálně kolik je paměťových vs. výpočetních instrukcí 
 - Ukazuje se smyčka ve funkci mandelbrot v RoofLine modelu? Proč? (Nápověda: AI, Survey)
 ==============================================================================
 - O0:
--- mandelbrot:
--- calculateMandelbrot:
+-- mandelbrot: paměťových 48%, výpočetních 7%
+-- calculateMandelbrot: paměťových 67%, výpočetních 12%
 
 - O3:
--- mandelbrot:
--- calculateMandelbrot:
+-- mandelbrot: paměťových 0%, výpočetních 81%
+-- calculateMandelbrot: paměťových 42%, výpočetních 14%
 
 Slovní vyjádření (1-2 krátké věty):
+Po vektorizaci se využívají pouze registry a přístupy do paměti se minimalizovaly.
+Smyčka se neukazuje, protože byla vložena přímo do těla calculateMandelbrot().
 
 
 4. Přeložte program s -O0 (žádné optimalizace). Na jakou výkonostní linii v RoofLine modelu 
    cílíme s jednotlivými implementacemi? (1b)
    Uveďte název a výkonnost včetně jednotky.
 ==============================================================================
-- ref:
+- ref: scalar add peak: 6,56 GFLOPS
 - line:
 - batch:
 
@@ -51,8 +54,8 @@ Slovní vyjádření (1-2 krátké věty):
 (v GFLOPS) při použití přepínačů -O0 a -O3? (1b)
 ==============================================================================
 - ref:
--- O0: XX.X GFLOPS
--- O3: XX.X GFLOPS
+-- O0: 1.14 GFLOPS
+-- O3: 3,03 GFLOPS
 
 - line:
 -- O0: XX.X GFLOPS
