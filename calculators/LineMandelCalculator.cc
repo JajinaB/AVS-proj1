@@ -19,7 +19,7 @@ LineMandelCalculator::LineMandelCalculator (unsigned matrixBaseSize, unsigned li
     BaseMandelCalculator(matrixBaseSize, limit, "LineMandelCalculator")
 {
     // @TODO allocate & prefill memory
-    data = (int *)(malloc(height * width * sizeof(int)));
+    data = (int *)(aligned_alloc(64, height * width * sizeof(int)));
 }
 
 LineMandelCalculator::~LineMandelCalculator() {
