@@ -1,8 +1,8 @@
 /**
  * @file LineMandelCalculator.cc
- * @author FULL NAME <xlogin00@stud.fit.vutbr.cz>
+ * @author Jana Brandejsova <xbrand12@stud.fit.vutbr.cz>
  * @brief Implementation of Mandelbrot calculator that uses SIMD paralelization over lines
- * @date DATE
+ * @date 3. 11. 2025
  */
 #include <iostream>
 #include <string>
@@ -20,12 +20,15 @@ LineMandelCalculator::LineMandelCalculator (unsigned matrixBaseSize, unsigned li
 {
     // @TODO allocate & prefill memory
     data = (int *)(aligned_alloc(64, height * width * sizeof(int)));
+    xVals = (float *)(aligned_alloc(64, width * sizeof(float)));
 }
 
 LineMandelCalculator::~LineMandelCalculator() {
     // @TODO cleanup the memory
     free(data);
-    data = NULL;
+    data = NULL;    
+    free(xVals);
+    xVals = NULL;
 }
 
 
@@ -33,38 +36,40 @@ int * LineMandelCalculator::calculateMandelbrot () {
     // @TODO implement the calculator & return array of integers
 
     int *pdata = data;
+    const halfHeight = height / 2;
 
-    for (int i = 0; i < height; ++i)
-    {
+    for (int i = 0; i < halfHeight; ++i) {
         const float y = y_start + i * dy;
+        int* row = pdata + i * width;
+        int* mirrorRow = pdata + (height - i - 1) * width;
 
-        // Vektorizovaná vnitřní smyčka přes sloupce (SIMD-friendly)
-        #pragma omp simd aligned(pdata:64)
+        #pragma omp simd aligned(row:64)
         for (int j = 0; j < width; ++j)
-        {
-            const float x = x_start + j * dx;
+            row[j] = limit;
 
-            // Výpočet Mandelbrotu přímo zde, bez volání mandelbrot()
-            float zReal = 0.0f;
-            float zImag = 0.0f;
+        #pragma omp simd aligned(xVals, row:64)
+        for (int j = 0; j < width; ++j) {
+            const float x = xVals[j];
+            float zr = 0.0f;
+            float zi = 0.0f;
             int iter = 0;
 
-            for (; iter < limit; ++iter)
-            {
-                const float r2 = zReal * zReal;
-                const float i2 = zImag * zImag;
-
+            while (iter < limit) {
+                const float r2 = zr * zr;
+                const float i2 = zi * zi;
                 if (r2 + i2 > 4.0f)
                     break;
 
                 const float zrTemp = r2 - i2 + x;
-                zImag = 2.0f * zReal * zImag + y;
-                zReal = zrTemp;
+                zi = 2.0f * zr * zi + y;
+                zr = zrTemp;
+                ++iter;
             }
 
-            pdata[i * width + j] = iter;
+            row[j] = iter;
+            mirrorRow[j] = iter;
         }
     }
 
-    return data;
+    return pdata;
 }
