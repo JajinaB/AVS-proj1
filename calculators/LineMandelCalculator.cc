@@ -21,6 +21,10 @@ LineMandelCalculator::LineMandelCalculator (unsigned matrixBaseSize, unsigned li
     // @TODO allocate & prefill memory
     data = (int *)(aligned_alloc(64, height * width * sizeof(int)));
     xVals = (float *)(aligned_alloc(64, width * sizeof(float)));
+    zReal = (float *)(aligned_alloc(64, width * sizeof(float)));
+    zImag = (float *)(aligned_alloc(64, width * sizeof(float)));
+    active = (int *)(aligned_alloc(64, width * sizeof(int)));
+
 }
 
 LineMandelCalculator::~LineMandelCalculator() {
@@ -29,46 +33,59 @@ LineMandelCalculator::~LineMandelCalculator() {
     data = NULL;    
     free(xVals);
     xVals = NULL;
+    free(zReal);
+    zReal = NULL;
+    free(zImag);
+    zImag = NULL;
+    free(active);
+    active = NULL;
 }
 
-
-int * LineMandelCalculator::calculateMandelbrot () {
-    // @TODO implement the calculator & return array of integers
-
+int *LineMandelCalculator::calculateMandelbrot() {
     int *pdata = data;
-    const halfHeight = height / 2;
+    const int halfHeight = height / 2;
 
     for (int i = 0; i < halfHeight; ++i) {
         const float y = y_start + i * dy;
         int* row = pdata + i * width;
         int* mirrorRow = pdata + (height - i - 1) * width;
 
-        #pragma omp simd aligned(row:64)
-        for (int j = 0; j < width; ++j)
-            row[j] = limit;
-
-        #pragma omp simd aligned(xVals, row:64)
+        #pragma omp simd aligned(zReal, zImag, active, row:64)
         for (int j = 0; j < width; ++j) {
-            const float x = xVals[j];
-            float zr = 0.0f;
-            float zi = 0.0f;
-            int iter = 0;
+            zReal[j] = 0.0f;
+            zImag[j] = 0.0f;
+            active[j] = 1;
+            row[j] = 0;
+        }
 
-            while (iter < limit) {
-                const float r2 = zr * zr;
-                const float i2 = zi * zi;
-                if (r2 + i2 > 4.0f)
-                    break;
+        for (int iter = 0; iter < limit; ++iter) {
+            int activeCount = 0;
 
-                const float zrTemp = r2 - i2 + x;
-                zi = 2.0f * zr * zi + y;
-                zr = zrTemp;
-                ++iter;
+            #pragma omp simd aligned(xVals, row, zReal, zImag, active:64) reduction(+:activeCount)
+            for (int j = 0; j < width; ++j) {
+                const float x = xVals[j];
+
+                const float r2 = zReal[j] * zReal[j];
+                const float i2 = zImag[j] * zImag[j];
+
+                const int stillActive = (r2 + i2 <= 4.0f) & active[j];
+
+                const float zRealTemp = r2 - i2 + x;
+                zImag[j] = 2.0f * zReal[j] * zImag[j] + y;
+                zReal[j] = zRealTemp;
+
+                row[j] += stillActive;
+                active[j] = stillActive;
+                activeCount += stillActive;
             }
 
-            row[j] = iter;
-            mirrorRow[j] = iter;
+            if (activeCount == 0)
+                break;
         }
+
+        #pragma omp simd aligned(row, mirrorRow:64)
+        for (int j = 0; j < width; ++j)
+            mirrorRow[j] = row[j];
     }
 
     return pdata;
