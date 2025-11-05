@@ -18,6 +18,9 @@ public:
 
 private:
     // @TODO add all internal parameters
+    int *data;
+    std::vector<float> x_coords;
+    std::vector<float> y_coords;
 };
 
 #endif
