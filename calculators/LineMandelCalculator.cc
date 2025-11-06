@@ -1,8 +1,8 @@
 /**
  * @file LineMandelCalculator.cc
- * @author FULL NAME <xlogin00@stud.fit.vutbr.cz>
+ * @author Jana Brandejsova <xbrand12@stud.fit.vutbr.cz>
  * @brief Implementation of Mandelbrot calculator that uses SIMD paralelization over lines
- * @date DATE
+ * @date 3. 11. 2025
  */
 #include <iostream>
 #include <string>
@@ -10,7 +10,6 @@
 #include <algorithm>
 
 #include <stdlib.h>
-
 
 #include "LineMandelCalculator.h"
 
@@ -22,66 +21,69 @@ LineMandelCalculator::LineMandelCalculator (unsigned matrixBaseSize, unsigned li
     data = (int *)(aligned_alloc(64, height * width * sizeof(int)));
     zReal = (float *)(aligned_alloc(64, width * sizeof(float)));
     zImag = (float *)(aligned_alloc(64, width * sizeof(float)));
+    active = (int *)(aligned_alloc(64, width * sizeof(int)));
 }
 
 LineMandelCalculator::~LineMandelCalculator() {
     // @TODO cleanup the memory
     free(data);
+    data = NULL;    
     free(zReal);
-    free(zImag);
     zReal = NULL;
+    free(zImag);
     zImag = NULL;
-    data = NULL;
+    free(active);
+    active = NULL;
 }
 
 
-int * LineMandelCalculator::calculateMandelbrot () {
+int *LineMandelCalculator::calculateMandelbrot() {
     // @TODO implement the calculator & return array of integers
-
     int *pdata = data;
-    float *zr = zReal;
-    float *zi = zImag;
+    const int halfHeight = height / 2;
 
-    for (int i = 0; i < height; i++)
-    {
+    for (int i = 0; i < halfHeight; ++i) {
         const float y = y_start + i * dy;
+        int* row = pdata + i * width;
+        int* mirrorRow = pdata + (height - i - 1) * width;
 
-        #pragma omp simd aligned(zr, zi, pdata:64)
-        for (int j = 0; j < width; j++)
-        {
-            zr[j] = 0.0f;
-            zi[j] = 0.0f;
-            data[i * width + j] = limit; // limit = „zatím neunikl“
+        #pragma omp simd aligned(zReal, zImag, active, row:64)
+        for (int x = 0; x < width; ++x) {
+            zReal[x] = 0.0f;
+            zImag[x] = 0.0f;
+            active[x] = 1;
+            row[x] = 0;
         }
 
-        // Vektorizovaná vnitřní smyčka přes sloupce (SIMD-friendly)
-        for (int k = 0; k < limit; k++)
-        {
-            #pragma omp simd aligned(zr, zi, data:64)
-            for (int j = 0; j < width; j++)
-            {
-                // Pokud pixel již divergoval, přeskočíme aktualizaci
-                if (pdata[i * width + j] < limit)
-                    continue;
+        for (int iter = 0; iter < limit; ++iter) {
+            int activeCount = 0;
 
-                float r2 = zr[j] * zr[j];
-                float i2 = zi[j] * zi[j];
+            #pragma omp simd aligned(row, zReal, zImag, active:64) reduction(+:activeCount)
+            for (int j = 0; j < width; ++j) {
+                float x = x_start + j * dx;
 
-                // Pokud právě diverguje, uložíme počet iterací
-                if (r2 + i2 > 4.0f)
-                {
-                    pdata[i * width + j] = k;
-                }
-                else
-                {
-                    // Jinak pokračujeme v iteraci
-                    float zrTemp = r2 - i2 + (x_start + j * dx);
-                    zi[j] = 2.0f * zr[j] * zi[j] + y;
-                    zr[j] = zrTemp;
-                }
+                const float r2 = zReal[j] * zReal[j];
+                const float i2 = zImag[j] * zImag[j];
+
+                const int stillActive = (r2 + i2 <= 4.0f) & active[j];
+
+                const float zRealTemp = r2 - i2 + x;
+                zImag[j] = 2.0f * zReal[j] * zImag[j] + y;
+                zReal[j] = zRealTemp;
+
+                row[j] += stillActive;
+                active[j] = stillActive;
+                activeCount += stillActive;
             }
+
+            if (activeCount == 0)
+                break;
         }
+
+        #pragma omp simd aligned(row, mirrorRow:64)
+        for (int j = 0; j < width; ++j)
+            mirrorRow[j] = row[j];
     }
 
-    return data;
+    return pdata;
 }
