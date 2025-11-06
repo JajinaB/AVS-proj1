@@ -11,7 +11,6 @@
 
 #include <stdlib.h>
 
-
 #include "LineMandelCalculator.h"
 
 
@@ -20,19 +19,15 @@ LineMandelCalculator::LineMandelCalculator (unsigned matrixBaseSize, unsigned li
 {
     // @TODO allocate & prefill memory
     data = (int *)(aligned_alloc(64, height * width * sizeof(int)));
-    xVals = (float *)(aligned_alloc(64, width * sizeof(float)));
     zReal = (float *)(aligned_alloc(64, width * sizeof(float)));
     zImag = (float *)(aligned_alloc(64, width * sizeof(float)));
     active = (int *)(aligned_alloc(64, width * sizeof(int)));
-
 }
 
 LineMandelCalculator::~LineMandelCalculator() {
     // @TODO cleanup the memory
     free(data);
     data = NULL;    
-    free(xVals);
-    xVals = NULL;
     free(zReal);
     zReal = NULL;
     free(zImag);
@@ -41,7 +36,9 @@ LineMandelCalculator::~LineMandelCalculator() {
     active = NULL;
 }
 
+
 int *LineMandelCalculator::calculateMandelbrot() {
+    // @TODO implement the calculator & return array of integers
     int *pdata = data;
     const int halfHeight = height / 2;
 
@@ -51,19 +48,19 @@ int *LineMandelCalculator::calculateMandelbrot() {
         int* mirrorRow = pdata + (height - i - 1) * width;
 
         #pragma omp simd aligned(zReal, zImag, active, row:64)
-        for (int j = 0; j < width; ++j) {
-            zReal[j] = 0.0f;
-            zImag[j] = 0.0f;
-            active[j] = 1;
-            row[j] = 0;
+        for (int x = 0; x < width; ++x) {
+            zReal[x] = 0.0f;
+            zImag[x] = 0.0f;
+            active[x] = 1;
+            row[x] = 0;
         }
 
         for (int iter = 0; iter < limit; ++iter) {
             int activeCount = 0;
 
-            #pragma omp simd aligned(xVals, row, zReal, zImag, active:64) reduction(+:activeCount)
+            #pragma omp simd aligned(row, zReal, zImag, active:64) reduction(+:activeCount)
             for (int j = 0; j < width; ++j) {
-                const float x = xVals[j];
+                float x = x_start + j * dx;
 
                 const float r2 = zReal[j] * zReal[j];
                 const float i2 = zImag[j] * zImag[j];
