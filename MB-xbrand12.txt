@@ -46,8 +46,8 @@ Smyčka se neukazuje, protože byla vložena přímo do těla calculateMandelbro
    Uveďte název a výkonnost včetně jednotky.
 ==============================================================================
 - ref: scalar add peak: 6,56 GFLOPS
-- line:
-- batch:
+- line: SP Vector Add Peak: 79,3 GFLOPS
+- batch: SP Vector Add Peak: 79,3 GFLOPS
 
 
 5. Jaká byla dosažena výkonnost v Intel Advisoru pro implementace ref, line a batch
@@ -58,11 +58,11 @@ Smyčka se neukazuje, protože byla vložena přímo do těla calculateMandelbro
 -- O3: 3,03 GFLOPS
 
 - line:
--- O0: XX.X GFLOPS
+-- O0: 6,37 GFLOPS
 -- O3: XX.X GFLOPS
 
 - batch:
--- O0: XX.X GFLOPS
+-- O0: 5,40 GFLOPS
 -- O3: XX.X GFLOPS
 
 
@@ -76,16 +76,24 @@ Jakým způsobem jsou načítána data, proč, a jaký to má vliv na výkon. (1
 7. Porovnejte Roofline všech modelů - Jaká je vaše aritmetická intenzita? 
 Dokázali byste ji přibližně spočítat i ručně a jak? (1b)
 ============================================================================== 
-- ref AI: XX.X FLOP/Byte
-- line AI: XX.X FLOP/Byte
--  batch AI: XX.X FLOP/Byte
+Uvedeno pro -DUSE_O3=OFF
+- ref AI: 0,09  FLOP/Byte
+- line AI: 0,06 FLOP/Byte
+-  batch AI: 0,06 FLOP/Byte
 
-Přibližný výpočet:
+Přibližný výpočet: sečíst aritmetické operace pro jednu iteraci ve vnitřní smyčce
+a podělit součtem všech paměťových přenosů v jedné iteraci (pouze do paměti, ne mezi registry)
 
 
 8. Komentujte vliv velikosti cache na výkonnost a chování na větších 
 velikostech domény. (1b)
 ==============================================================================
+Velikost cache je zásadní, čím více dat, se kterými se aktuálně pracuje, se vejde do cache,
+tím vyšší výkon, protože se nemusí přistupovat do paměti. Velmi časté přístupy do paměti
+snižují výkon, protože se musí čekat na data. Na větších doménách, kde se nevejde celá struktura
+do cache je nutné omezit množství pomoci cache blocking technik, aby nedocházelo k neustálému
+přepisování cache.
+
 
 
 9. Jaký vliv na výkonnost má symetrie? Lze tento rozdíl pozorovat v Intel Advisor? 

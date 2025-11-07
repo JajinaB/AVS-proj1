@@ -39,13 +39,13 @@ LineMandelCalculator::~LineMandelCalculator() {
 
 int *LineMandelCalculator::calculateMandelbrot() {
     // @TODO implement the calculator & return array of integers
-    int *pdata = data;
+    int *dataOut = data;
     const int halfHeight = height / 2;
 
     for (int i = 0; i < halfHeight; ++i) {
         const float y = y_start + i * dy;
-        int* row = pdata + i * width;
-        int* mirrorRow = pdata + (height - i - 1) * width;
+        int* row = dataOut + i * width;
+        int* mirrorRow = dataOut + (height - i - 1) * width;
 
         #pragma omp simd aligned(zReal, zImag, active, row:64)
         for (int x = 0; x < width; ++x) {
@@ -85,5 +85,5 @@ int *LineMandelCalculator::calculateMandelbrot() {
             mirrorRow[j] = row[j];
     }
 
-    return pdata;
+    return dataOut;
 }

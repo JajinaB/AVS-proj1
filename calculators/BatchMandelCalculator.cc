@@ -93,5 +93,5 @@ int * BatchMandelCalculator::calculateMandelbrot () {
             mirrorRow[j] = row[j];
     }
 
-    return pdata;
+    return dataOut;
 }
