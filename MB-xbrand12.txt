@@ -59,27 +59,29 @@ Smyčka se neukazuje, protože byla vložena přímo do těla calculateMandelbro
 
 - line:
 -- O0: 6,37 GFLOPS
--- O3: XX.X GFLOPS
+-- O3: 21,25 GFLOPS
 
 - batch:
 -- O0: 5,40 GFLOPS
--- O3: XX.X GFLOPS
+-- O3: 21,54 GFLOPS
 
 
 6. Porovnejte implementaci referenčního rešení oproti "Line" a "Batch" implementaci. 
 Jakým způsobem jsou načítána data, proč, a jaký to má vliv na výkon. (1b)
 ==============================================================================
-- line:
-- batch:
+- line: načtení celého řádku a zpracování více pixelů naráz => výrazně výkonnější a efektivnější 
+než načítání po jednom pixelu jako v fer. Problém nastává pokud se celý výsledek nevejde do cache (snížení výkonu).
+- batch: stejný princip jako u line, načítání dat po řádcích ale navíc ošteřený problém zarovnání 
+dat na velikost cache. Je zajištěno, že se pracuje s blokem, který se do cache vejde => nejvyšší výkon.
 
 
 7. Porovnejte Roofline všech modelů - Jaká je vaše aritmetická intenzita? 
 Dokázali byste ji přibližně spočítat i ručně a jak? (1b)
 ============================================================================== 
-Uvedeno pro -DUSE_O3=OFF
-- ref AI: 0,09  FLOP/Byte
-- line AI: 0,06 FLOP/Byte
--  batch AI: 0,06 FLOP/Byte
+Uvedeno pro -DUSE_O3=ON
+- ref AI: 0,25  FLOP/Byte
+- line AI: 0,336 FLOP/Byte
+- batch AI: 0,311 FLOP/Byte
 
 Přibližný výpočet: sečíst aritmetické operace pro jednu iteraci ve vnitřní smyčce
 a podělit součtem všech paměťových přenosů v jedné iteraci (pouze do paměti, ne mezi registry)
@@ -99,4 +101,7 @@ přepisování cache.
 9. Jaký vliv na výkonnost má symetrie? Lze tento rozdíl pozorovat v Intel Advisor? 
 (nápověda: instrukce) (0.5b)
 ============================================================================== 
-
+Při využití symetrie dochazi k vypoctu pouze u poloviny celkovych bodu, takže vypočetně je to
+méně náročné ale v počtech přístupů k paměti se nic neliší, je potřeba tam hodnoty vložit všechny.
+V Advisoru to znázorňuje nižší počet vykonaných instrukcí a dále poloviční potřebný čas na výpoče,
+ale dvojnásobný datový provoz v dané smyčce.
